@@ -1,5 +1,5 @@
 
-source("vioplot.R")
+
 #**************************************************
 readRules<-function(rulefile){
   # read in the rules data file
