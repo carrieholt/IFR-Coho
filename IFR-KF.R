@@ -1,39 +1,39 @@
-#Code to generate KF Ricker a values for 5 IFR Coho CUs
+# Code to generate KF Ricker a values for 5 IFR Coho CUs
+# Developed by Carrie Holt
 
 library(dplyr) 
+source("KFcode.R")
 
 #GetIFRcoho<-function(){
-  data<-as.tbl(read.csv("data/Stockrecruitdatausedfor2019excl2010Chilko.csv", 
-                        col.name=c("stk",	"CU",	"yr",	"cyc", "rec2", "rec3",
-                                   "rec4",	"rec5",	"rec",	"eff",	"ETS",	
-                                   "juv",	"Smax_sR",	"Smax_tvR",
-                                   "n>Smax_sR",	"n>Smax_tvR",	"S>Smax",	"S0",
-                                   "0.2S0",	"n<0.2S0"), skip=0))
+  data <- as.data.frame(read.table("data/IFC_SR.dat", header=TRUE))
+ 
+  StrYr <- data%>%group_by(CUid)%>%summarise(Min=min(Byr))
+  EndYr <- data%>%group_by(CUid)%>%summarise(Max=max(Byr))
   
-  cu<-as.tbl(read.csv("data/cuToStock.csv", col.name=c("cuName","stock", 
-                                                       "stYear", "endYear"),
-                      skip=0))
+  
+  # cu<-as.tbl(read.csv("data/cuToStock.csv", col.name=c("cuName","stock", 
+  #                                                      "stYear", "endYear"),
+                      
   ricALR <- ricBLR <- ricLRAICc <- sMaxLR <- sMSYLR <- sGenLR <- ricBKF <- 
-    ricKFAICc <- sMaxKF <- ricAKFMean <- ricAKFLast <- snr <- nllKF <- varKF <- 
-    sMSYKFMean <- sMSYKFLast <- sGenKFLast <- sGenKFMean <- sGenKFLast <-
-    ppnHigh <- ppnLow <- ppnHRec <- nYrs <- ricSig <- ricSige <- ricSigw <- NA
+  ricKFAICc <- sMaxKF <- ricAKFMean <- ricAKFLast <- snr <- nllKF <- varKF <- 
+  sMSYKFMean <- sMSYKFLast <- sGenKFLast <- sGenKFMean <- sGenKFLast <-
+  ppnHigh <- ppnLow <- ppnHRec <- nYrs <- ricSig <- ricSige <- ricSigw <- NA
   
-  maxYears<-max(cu$endYear)-min(cu$stYear)+1
-  y1<-min(cu$stYear)
+  maxYears <- max (EndYr$Max - StrYr$Min)
+  y1 <- min(StrYr$Min)
+  nCUs <- length(unique(data$CUnm))
   
   ricAKF_mat <- ricAKFVar_mat <- sMSYKF_mat <- sGenKF_mat <- 
-    matrix(NA, nrow=maxYears, ncol=length(cu$cuName))
+    matrix(NA, nrow=maxYears, ncol=nCUs)
   
-  for(i in 1:length(cu$cuName)){
+  for(i in 1:nCUs){
     
     R <- S <- NA
-    R<-data%>%filter(CU==as.character(cu$cuName[i]))%>%
-      filter(yr>=cu$stYear[i]&yr<=cu$endYear[i])%>%select(rec)
-    S<-data%>%filter(CU==as.character(cu$cuName[i]))%>%
-      filter(yr>=cu$stYear[i]&yr<=cu$endYear[i])%>%select(ETS)
+    R<-data%>%filter(CUid==i)%>%select(Rec_total)
+    S<-data%>%filter(CUid==i)%>%select(Sp)
     
-    nYrs[i] <- length(S$ETS)
-    out.lm <- lm(log(R$rec/S$ETS)~S$ETS)
+    nYrs[i] <- length(S$Sp)
+    out.lm <- lm(log(R$Rec_total/S$Sp)~S$Sp)
     ricALR[i] <- out.lm$coef[1]
     ricBLR[i] <- -out.lm$coef[2]
     nllLR <- log (sum (out.lm$residuals^2) / length (out.lm$residuals)) *
